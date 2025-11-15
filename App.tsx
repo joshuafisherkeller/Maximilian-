@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { HomeIcon, SpeakerIcon, WriteIcon, SentenceIcon, SettingsIcon } from './components/icons';
 import FlashcardActivity from './components/FlashcardActivity';
@@ -32,7 +31,7 @@ const App: React.FC = () => {
       <div className="relative z-10 flex flex-col flex-grow">
         <header className="flex justify-between items-center mb-6">
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-yellow-400 text-shadow" style={{textShadow: '3px 3px 0 #4A90E2'}}>
-            Maximilian's Site Word Adventure
+            Maximilian's Sight Word Adventure
           </h1>
           <div className="flex items-center space-x-2">
             {activity !== 'home' && (
