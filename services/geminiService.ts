@@ -1,30 +1,45 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Gracefully handle the absence of `process` in a browser environment,
-// which is common in production deployments like Vercel.
-const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
-
 let ai: GoogleGenAI | null = null;
 
-if (API_KEY) {
-  try {
-    ai = new GoogleGenAI({ apiKey: API_KEY });
-  } catch (error) {
-    console.error("Failed to initialize GoogleGenAI, AI features will be disabled:", error);
-    ai = null;
-  }
-} else {
-  console.warn("Gemini API key not found. AI features will be disabled. Make sure to set the API_KEY environment variable in your deployment settings (e.g., Vercel).");
-}
+// Asynchronously initialize the GoogleGenAI client
+const initializeAi = async (): Promise<GoogleGenAI | null> => {
+    // If already initialized, return the existing instance
+    if (ai) {
+        return ai;
+    }
+
+    try {
+        // Fetch the API key from our secure serverless function
+        const response = await fetch('/api/getKey');
+        if (!response.ok) {
+            const errorBody = await response.json();
+            throw new Error(errorBody.error || 'Failed to fetch API key from server.');
+        }
+        const { apiKey } = await response.json();
+
+        if (apiKey) {
+            // Create a new instance and store it for reuse
+            ai = new GoogleGenAI({ apiKey });
+            return ai;
+        } else {
+            throw new Error('API key was not returned from the server.');
+        }
+    } catch (error) {
+        console.error("Could not initialize Gemini AI:", error);
+        alert(`The text-to-speech feature is currently unavailable. Reason: ${error.message}`);
+        return null;
+    }
+};
 
 export const generateSpeech = async (text: string): Promise<string | null> => {
-  if (!ai) {
+  const aiClient = await initializeAi();
+  if (!aiClient) {
       console.error("Gemini service is not initialized. Cannot generate speech.");
-      alert("The text-to-speech feature is currently unavailable. Please ensure the API key is configured correctly.");
       return null;
   }
   try {
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }],
         config: {
@@ -44,6 +59,7 @@ export const generateSpeech = async (text: string): Promise<string | null> => {
     return null;
   } catch (error) {
     console.error("Error generating speech:", error);
+    alert("An error occurred while generating speech. Please check the console for details.");
     return null;
   }
 };
