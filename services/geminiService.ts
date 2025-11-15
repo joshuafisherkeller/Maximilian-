@@ -1,18 +1,26 @@
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Assume process.env.API_KEY is available in the environment
-const API_KEY = process.env.API_KEY;
+// Gracefully handle the absence of `process` in a browser environment,
+// which is common in production deployments like Vercel.
+const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
 
-if (!API_KEY) {
-  console.warn("Gemini API key not found. Please set the API_KEY environment variable.");
+let ai: GoogleGenAI | null = null;
+
+if (API_KEY) {
+  try {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI, AI features will be disabled:", error);
+    ai = null;
+  }
+} else {
+  console.warn("Gemini API key not found. AI features will be disabled. Make sure to set the API_KEY environment variable in your deployment settings (e.g., Vercel).");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
-
 export const generateSpeech = async (text: string): Promise<string | null> => {
-  if (!API_KEY) {
-      alert("API Key is not configured. Speech generation is disabled.");
+  if (!ai) {
+      console.error("Gemini service is not initialized. Cannot generate speech.");
+      alert("The text-to-speech feature is currently unavailable. Please ensure the API key is configured correctly.");
       return null;
   }
   try {
